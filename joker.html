@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ไพ่จับโจ๊กเกอร์</title>
+<style>
+  :root {
+    --bg: #14532d;
+    --felt: #166534;
+    --panel: rgba(0,0,0,.28);
+    --text: #f0fdf4;
+    --muted: #bbf7d0;
+    --accent: #facc15;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    background: radial-gradient(ellipse at center, var(--felt), var(--bg) 75%);
+    font-family: "Segoe UI", "Leelawadee UI", Tahoma, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 20px 16px; gap: 14px;
+  }
+  h1 { margin: 0; font-size: 24px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  select, button {
+    font: inherit; font-size: 14px; color: #111; background: #fefce8; border: none;
+    border-radius: 6px; padding: 8px 12px; cursor: pointer;
+  }
+  button.primary { background: var(--accent); font-weight: 700; }
+  button:hover { filter: brightness(.95); }
+  .status { font-size: 18px; font-weight: 600; background: var(--panel); padding: 10px 16px; border-radius: 8px; text-align: center; min-width: 280px; }
+  .opponents { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 1100px; }
+  .seat {
+    background: var(--panel); border-radius: 10px; padding: 10px 12px; min-width: 200px; flex: 1 1 220px; max-width: 360px;
+    border: 2px solid transparent; transition: border-color .2s;
+  }
+  .seat.turn { border-color: var(--accent); }
+  .seat.target { border-color: #60a5fa; box-shadow: 0 0 14px rgba(96,165,250,.6); }
+  .seat.out { opacity: .55; }
+  .seat-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; font-size: 15px; }
+  .seat-head small { color: var(--muted); font-weight: 400; }
+  .fan { display: flex; flex-wrap: wrap; min-height: 74px; padding-left: 18px; }
+  .fan .card { margin-left: -18px; }
+
+  .card {
+    width: 52px; height: 74px; border-radius: 6px; background: #fff; color: #111;
+    box-shadow: 0 2px 5px rgba(0,0,0,.4); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 18px; line-height: 1.1;
+    transition: transform .15s; position: relative; flex: none;
+  }
+  .card.red { color: var(--red); }
+  .card .s { font-size: 22px; }
+  .card.joker { background: linear-gradient(135deg, #fde68a, #f472b6, #818cf8); font-size: 11px; }
+  .card.joker .s { font-size: 28px; }
+  .card.back {
+    background: repeating-linear-gradient(45deg, #1e3a8a 0 6px, #1d4ed8 6px 12px);
+    border: 3px solid #fff;
+  }
+  .seat.target .card.back { cursor: pointer; }
+  .seat.target .card.back:hover { transform: translateY(-10px); }
+  .card.new { animation: pop .5s ease; outline: 3px solid var(--accent); }
+  @keyframes pop { from { transform: scale(1.35); } to { transform: scale(1); } }
+
+  .me { width: 100%; max-width: 1100px; }
+  .me .fan { padding-left: 26px; justify-content: center; }
+  .me .fan .card { width: 64px; height: 92px; font-size: 22px; margin-left: -26px; }
+  .me .fan .card .s { font-size: 28px; }
+
+  .log {
+    width: 100%; max-width: 1100px; background: var(--panel); border-radius: 8px; padding: 8px 12px;
+    height: 130px; overflow-y: auto; font-size: 14px; color: var(--muted);
+  }
+  .log div:last-child { color: var(--text); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal.show { display: flex; }
+  .modal-box { background: #fefce8; color: #111; padding: 22px 28px; border-radius: 12px; text-align: center; min-width: 280px; }
+  .modal-box h2 { margin: 0 0 10px; }
+  .modal-box ol { text-align: left; }
+  .rules { max-width: 700px; font-size: 13px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+  <a href="index.html" style="color:var(--muted);text-decoration:none;font-size:14px;align-self:flex-start">← กลับหน้ารวมเกม</a>
+  <h1>🃏 ไพ่จับโจ๊กเกอร์</h1>
+  <div class="rules">กติกา: ทิ้งไพ่ที่เป็นคู่ (เลขเดียวกัน) ออกจากมือ แล้วผลัดกันจั่วไพ่ 1 ใบจากมือของผู้เล่นคนถัดไป ใครไพ่หมดมือก่อนชนะ คนสุดท้ายที่ถือโจ๊กเกอร์ค้างมือแพ้!</div>
+  <div class="bar">
+    <label for="numBots">จำนวนคู่แข่ง:</label>
+    <select id="numBots">
+      <option value="1">1 คน</option>
+      <option value="2">2 คน</option>
+      <option value="3" selected>3 คน</option>
+      <option value="4">4 คน</option>
+    </select>
+    <button class="primary" id="newBtn">เริ่มเกมใหม่</button>
+    <button id="shuffleBtn">สับไพ่ในมือ</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="opponents" id="opponents"></div>
+  <div class="seat me" id="me"></div>
+  <div class="log" id="log"></div>
+
+  <div class="modal" id="result">
+    <div class="modal-box">
+      <h2 id="resultTitle"></h2>
+      <ol id="resultList"></ol>
+      <button class="primary" onclick="newGame()">เล่นอีกครั้ง</button>
+    </div>
+  </div>
+
+<script>
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SUITS = ['♠','♥','♦','♣'];
+const BOT_NAMES = ['น้องแมว', 'ลุงหมี', 'ป้ากระต่าย', 'พี่จิ้งจอก'];
+const DELAY = 900;
+
+let players, cur, finished, busy, lastNew = null;
+
+const $ = id => document.getElementById(id);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const cardName = c => c.rank === 'JK' ? 'โจ๊กเกอร์' : c.rank + c.suit;
+
+function log(msg) {
+  const d = document.createElement('div');
+  d.textContent = msg;
+  $('log').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+function removePairs(p) {
+  const byRank = {};
+  for (const c of p.hand) (byRank[c.rank] ||= []).push(c);
+  const keep = [], pairs = [];
+  for (const r in byRank) {
+    const cs = byRank[r];
+    while (cs.length >= 2 && r !== 'JK') pairs.push([cs.pop(), cs.pop()]);
+    keep.push(...cs);
+  }
+  p.hand = keep;
+  return pairs;
+}
+
+function sortHand(h) {
+  return h.sort((a, b) => {
+    const ra = a.rank === 'JK' ? 99 : RANKS.indexOf(a.rank), rb = b.rank === 'JK' ? 99 : RANKS.indexOf(b.rank);
+    return ra - rb || SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit);
+  });
+}
+
+function newGame() {
+  $('result').classList.remove('show');
+  $('log').innerHTML = '';
+  const n = +$('numBots').value;
+  const deck = [];
+  for (const r of RANKS) for (const s of SUITS) deck.push({ rank: r, suit: s, id: r + s });
+  deck.push({ rank: 'JK', suit: '', id: 'JK' });
+  shuffle(deck);
+
+  players = [{ name: 'คุณ', human: true, hand: [], out: false }];
+  shuffle(BOT_NAMES.slice()).slice(0, n).forEach(name => players.push({ name, human: false, hand: [], out: false }));
+  deck.forEach((c, i) => players[i % players.length].hand.push(c));
+
+  finished = []; busy = false; lastNew = null;
+  log('แจกไพ่แล้ว! ทุกคนทิ้งไพ่ที่เป็นคู่');
+  for (const p of players) {
+    const pairs = removePairs(p);
+    log(`${p.name} ทิ้งไป ${pairs.length} คู่ เหลือ ${p.hand.length} ใบ`);
+    if (p.human) sortHand(p.hand); else shuffle(p.hand);
+  }
+  for (const p of players) checkOut(p);
+  cur = Math.floor(Math.random() * players.length);
+  if (players[cur].out) cur = nextActive(cur);
+  if (!checkEnd()) startTurn();
+}
+
+function nextActive(i) {
+  let j = i;
+  do { j = (j + 1) % players.length; } while (players[j].out && j !== i);
+  return j;
+}
+
+function activeCount() { return players.filter(p => !p.out).length; }
+
+function checkOut(p) {
+  if (!p.out && p.hand.length === 0) {
+    p.out = true;
+    finished.push(p);
+    log(`🎉 ${p.name} ไพ่หมดมือแล้ว! (อันดับ ${finished.length})`);
+  }
+}
+
+function checkEnd() {
+  if (activeCount() > 1) return false;
+  const loser = players.find(p => !p.out);
+  render();
+  const ranking = [...finished, loser];
+  $('resultTitle').textContent = loser.human ? '😵 คุณแพ้! ติดโจ๊กเกอร์' : (finished[0].human ? '🏆 คุณชนะที่ 1!' : `จบเกม — ${loser.name} ติดโจ๊กเกอร์`);
+  $('resultList').innerHTML = ranking.map((p, i) =>
+    `<li>${p.name}${i === ranking.length - 1 ? ' 🃏 (แพ้)' : ''}</li>`).join('');
+  log(`จบเกม! ${loser.name} ถือโจ๊กเกอร์ค้างมือ`);
+  setTimeout(() => $('result').classList.add('show'), 600);
+  return true;
+}
+
+function startTurn() {
+  const p = players[cur], target = players[nextActive(cur)];
+  render();
+  if (p.human) {
+    $('status').textContent = `ตาของคุณ — เลือกจั่วไพ่ 1 ใบจาก ${target.name}`;
+  } else {
+    $('status').textContent = `ตาของ ${p.name} กำลังจั่วไพ่จาก ${target.name}…`;
+    busy = true;
+    setTimeout(() => {
+      busy = false;
+      draw(Math.floor(Math.random() * target.hand.length));
+    }, DELAY);
+  }
+}
+
+function draw(idx) {
+  const p = players[cur], ti = nextActive(cur), target = players[ti];
+  const [card] = target.hand.splice(idx, 1);
+  const match = p.hand.findIndex(c => c.rank === card.rank && card.rank !== 'JK');
+  const showCard = p.human || target.human;
+
+  if (match >= 0) {
+    const [m] = p.hand.splice(match, 1);
+    log(`${p.name} จั่ว${showCard ? ' ' + cardName(card) : 'ไพ่'}จาก ${target.name} → ได้คู่! ทิ้ง ${cardName(m)} กับ ${cardName(card)}`);
+    lastNew = null;
+  } else {
+    p.hand.push(card);
+    log(`${p.name} จั่ว${showCard ? ' ' + cardName(card) : 'ไพ่ 1 ใบ'}จาก ${target.name}${card.rank === 'JK' && showCard ? ' 😱' : ''}`);
+    lastNew = p.human ? card.id : null;
+  }
+  if (p.human) sortHand(p.hand); else shuffle(p.hand);
+  if (!target.human) shuffle(target.hand);
+
+  checkOut(target);
+  checkOut(p);
+  if (checkEnd()) return;
+  cur = nextActive(cur);
+  startTurn();
+}
+
+function cardEl(c, faceUp) {
+  const d = document.createElement('div');
+  if (!faceUp) { d.className = 'card back'; return d; }
+  if (c.rank === 'JK') {
+    d.className = 'card joker';
+    d.innerHTML = '<span class="s">🃏</span>JOKER';
+  } else {
+    d.className = 'card' + (c.suit === '♥' || c.suit === '♦' ? ' red' : '');
+    d.innerHTML = `<span>${c.rank}</span><span class="s">${c.suit}</span>`;
+  }
+  if (c.id === lastNew) d.classList.add('new');
+  return d;
+}
+
+function seatEl(p, i, container) {
+  const human = players[cur];
+  const isTarget = human && human.human && !busy && players[cur] === players[0] && nextActive(cur) === i && !p.out;
+  container.className = 'seat' + (p.human ? ' me' : '') + (i === cur && !p.out ? ' turn' : '') + (p.out ? ' out' : '') + (isTarget ? ' target' : '');
+  const rank = finished.indexOf(p);
+  container.innerHTML = `<div class="seat-head"><span>${p.human ? '🙂' : '🤖'} ${p.name}</span><small>${p.out ? 'ไพ่หมดแล้ว (อันดับ ' + (rank + 1) + ')' : p.hand.length + ' ใบ'}</small></div>`;
+  const fan = document.createElement('div');
+  fan.className = 'fan';
+  p.hand.forEach((c, idx) => {
+    const el = cardEl(c, p.human);
+    if (isTarget) el.onclick = () => draw(idx);
+    fan.appendChild(el);
+  });
+  container.appendChild(fan);
+}
+
+function render() {
+  const opp = $('opponents');
+  opp.innerHTML = '';
+  players.forEach((p, i) => {
+    if (p.human) seatEl(p, i, $('me'));
+    else { const d = document.createElement('div'); seatEl(p, i, d); opp.appendChild(d); }
+  });
+}
+
+$('newBtn').onclick = newGame;
+$('numBots').onchange = newGame;
+$('shuffleBtn').onclick = () => { shuffle(players[0].hand); lastNew = null; render(); };
+
+newGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รวมเกม</title>
+<style>
+  :root {
+    --bg: #16171c;
+    --card: #23252d;
+    --text: #ececf1;
+    --muted: #9fa3ae;
+    --accent: #facc15;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Leelawadee UI", Tahoma, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 48px 16px;
+  }
+  h1 { margin: 0 0 6px; font-size: 32px; }
+  .sub { color: var(--muted); margin: 0 0 36px; }
+  .grid {
+    display: grid; gap: 20px; width: 100%; max-width: 880px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  a.game {
+    display: flex; flex-direction: column; text-decoration: none; color: inherit;
+    background: var(--card); border-radius: 14px; overflow: hidden;
+    border: 2px solid transparent; transition: transform .15s, border-color .15s, box-shadow .15s;
+  }
+  a.game:hover, a.game:focus-visible {
+    transform: translateY(-4px); border-color: var(--accent);
+    box-shadow: 0 12px 28px rgba(0,0,0,.45); outline: none;
+  }
+  .thumb { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 72px; }
+  .chess .thumb { background: repeating-conic-gradient(#eed9b6 0 25%, #b5875f 0 50%) 0 0 / 46px 46px; text-shadow: 0 0 3px #000; color: #fff; }
+  .course .thumb { background: linear-gradient(135deg, #1e3a8a, #4f9dff); }
+  .joker .thumb { background: radial-gradient(ellipse at center, #166534, #14532d 75%); }
+  .info { padding: 14px 16px 18px; }
+  .info h2 { margin: 0 0 6px; font-size: 20px; }
+  .info p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .tags { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 12px; background: #33363f; color: var(--muted); padding: 3px 8px; border-radius: 999px; }
+</style>
+</head>
+<body>
+  <h1>🎮 รวมเกม</h1>
+  <p class="sub">เลือกเกมที่อยากเล่นได้เลย</p>
+
+  <div class="grid">
+    <a class="game chess" href="game.html">
+      <div class="thumb">♞</div>
+      <div class="info">
+        <h2>หมากรุกสากล</h2>
+        <p>กติกาครบ เข้าป้อม กินผ่าน เลื่อนขั้น รุกฆาต เล่นกับคอมพิวเตอร์ 3 ระดับ หรือเล่น 2 คน</p>
+        <div class="tags"><span class="tag">กระดาน</span><span class="tag">1–2 คน</span></div>
+      </div>
+    </a>
+
+    <a class="game course" href="chess-course.html">
+      <div class="thumb">🎓</div>
+      <div class="info">
+        <h2>คอร์สเรียนหมากรุก</h2>
+        <p>เรียนตั้งแต่ศูนย์ 16 บท การเดินหมากทุกตัว รุกฆาต กติกาพิเศษ พร้อมโจทย์ให้ลองเล่นทุกบท</p>
+        <div class="tags"><span class="tag">บทเรียน</span><span class="tag">มือใหม่</span></div>
+      </div>
+    </a>
+
+    <a class="game joker" href="joker.html">
+      <div class="thumb">🃏</div>
+      <div class="info">
+        <h2>ไพ่จับโจ๊กเกอร์</h2>
+        <p>ทิ้งไพ่คู่ ผลัดกันจั่วไพ่จากมือคนถัดไป ใครถือโจ๊กเกอร์ค้างมือคนสุดท้ายแพ้!</p>
+        <div class="tags"><span class="tag">ไพ่</span><span class="tag">เล่นกับบอท 1–4 คน</span></div>
+      </div>
+    </a>
+  </div>
+</body>
+</html>
