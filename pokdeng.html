@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ไพ่ป๊อกเด้ง</title>
+<style>
+  :root {
+    --felt: #7f1d1d;
+    --felt-dark: #450a0a;
+    --panel: rgba(0,0,0,.3);
+    --text: #fef2f2;
+    --muted: #fecaca;
+    --gold: #fbbf24;
+    --win: #86efac;
+    --lose: #fca5a5;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    background: radial-gradient(ellipse at center, var(--felt), var(--felt-dark) 80%);
+    font-family: "Segoe UI", "Leelawadee UI", Tahoma, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 20px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .top { width: 100%; max-width: 760px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .back { color: var(--muted); text-decoration: none; font-size: 14px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
+  .balance { background: var(--panel); border-radius: 999px; padding: 6px 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .balance span { color: var(--gold); }
+
+  .table { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
+  .seat { background: var(--panel); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .seat-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .seat-name { font-weight: 700; font-size: 17px; }
+  .hand-label { font-size: 15px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: rgba(0,0,0,.35); min-height: 26px; }
+  .hand-label.special { color: var(--gold); }
+  .cards { display: flex; gap: 10px; min-height: 112px; flex-wrap: wrap; }
+
+  .card {
+    width: 78px; height: 110px; border-radius: 8px; background: #fff; color: #111;
+    box-shadow: 0 3px 8px rgba(0,0,0,.45); position: relative; flex: none;
+    animation: deal .3s ease-out;
+  }
+  .card.red { color: var(--red); }
+  .card .corner { position: absolute; top: 5px; left: 7px; font-weight: 700; font-size: 18px; line-height: 1; text-align: center; }
+  .card .corner small { display: block; font-size: 16px; }
+  .card .mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+  .card.back {
+    background: repeating-linear-gradient(45deg, #1e3a8a 0 7px, #1d4ed8 7px 14px);
+    border: 4px solid #fff;
+  }
+  @keyframes deal { from { transform: translateY(-30px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+
+  .message {
+    text-align: center; font-size: 20px; font-weight: 700; min-height: 30px;
+  }
+  .message.win { color: var(--win); }
+  .message.lose { color: var(--lose); }
+
+  .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .chip {
+    width: 62px; height: 62px; border-radius: 50%; border: 5px dashed rgba(255,255,255,.7);
+    font: inherit; font-weight: 800; font-size: 16px; color: #fff; cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0,0,0,.4); transition: transform .12s;
+  }
+  .chip:hover { transform: translateY(-3px); }
+  .chip.sel { outline: 4px solid var(--gold); outline-offset: 2px; }
+  .chip[data-v="10"] { background: #2563eb; }
+  .chip[data-v="50"] { background: #16a34a; }
+  .chip[data-v="100"] { background: #111827; }
+  .chip[data-v="500"] { background: #9333ea; }
+  .chip:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    font: inherit; font-size: 16px; font-weight: 700; border: none; border-radius: 8px; padding: 11px 22px; cursor: pointer;
+    background: #fef3c7; color: #111;
+  }
+  .btn.primary { background: var(--gold); }
+  .btn:hover { filter: brightness(.95); }
+  .btn:focus-visible, .chip:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .bet-info { font-size: 15px; color: var(--muted); }
+
+  details { width: 100%; max-width: 760px; background: var(--panel); border-radius: 10px; padding: 10px 16px; font-size: 14px; line-height: 1.7; }
+  summary { cursor: pointer; font-weight: 700; }
+  details table { border-collapse: collapse; margin: 6px 0; }
+  details td, details th { padding: 3px 12px 3px 0; text-align: left; border-bottom: 1px solid rgba(255,255,255,.12); }
+  .stats { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="index.html">← กลับหน้ารวมเกม</a>
+    <div class="balance">ชิป: <span id="balance">1,000</span></div>
+  </div>
+  <h1>ไพ่ป๊อกเด้ง</h1>
+
+  <div class="table">
+    <div class="seat">
+      <div class="seat-head"><span class="seat-name">เจ้ามือ</span><span class="hand-label" id="dealerLabel"></span></div>
+      <div class="cards" id="dealerCards"></div>
+    </div>
+
+    <div class="message" id="message">เลือกจำนวนเดิมพัน แล้วกด "แจกไพ่"</div>
+
+    <div class="seat">
+      <div class="seat-head"><span class="seat-name">คุณ</span><span class="hand-label" id="playerLabel"></span></div>
+      <div class="cards" id="playerCards"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="chips" id="chips">
+      <button class="chip" data-v="10">10</button>
+      <button class="chip" data-v="50">50</button>
+      <button class="chip" data-v="100">100</button>
+      <button class="chip" data-v="500">500</button>
+    </div>
+    <div class="bet-info" id="betInfo"></div>
+    <div class="btns" id="btns"></div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <details>
+    <summary>กติกาป๊อกเด้ง</summary>
+    <p>ผู้เล่นและเจ้ามือได้ไพ่คนละ 2 ใบ นับแต้มโดยเอาหลักหน่วยของผลรวม (A = 1, 2–9 ตามหน้าไพ่, 10 J Q K = 0) เช่น 7 + 6 = 13 ได้ 3 แต้ม ใครแต้มมากกว่าชนะ</p>
+    <ul>
+      <li><b>ป๊อก</b>: ได้ 8 หรือ 9 แต้มจากไพ่ 2 ใบแรก ชนะทันทีโดยไม่ต้องจั่ว (ป๊อก 9 ชนะป๊อก 8)</li>
+      <li>ถ้าไม่มีใครป๊อก ผู้เล่นเลือกจั่วเพิ่มได้ 1 ใบ แล้วเจ้ามือจึงตัดสินใจจั่ว</li>
+    </ul>
+    <table>
+      <tr><th>มือไพ่</th><th>จ่าย</th></tr>
+      <tr><td>2 ใบดอกเดียวกัน หรือคู่</td><td>2 เด้ง (×2)</td></tr>
+      <tr><td>3 ใบดอกเดียวกัน</td><td>3 เด้ง (×3)</td></tr>
+      <tr><td>เซียน (J Q K ทั้ง 3 ใบ)</td><td>×3</td></tr>
+      <tr><td>เรียง (เลขเรียงกัน 3 ใบ)</td><td>×3</td></tr>
+      <tr><td>สเตรทฟลัช (เรียง + ดอกเดียวกัน)</td><td>×5</td></tr>
+      <tr><td>ตอง (เลขเดียวกัน 3 ใบ)</td><td>×5</td></tr>
+    </table>
+    <p>ลำดับความแรง: ป๊อก &gt; ตอง &gt; สเตรทฟลัช &gt; เรียง &gt; เซียน &gt; แต้มธรรมดา ผู้ชนะได้เงินตามเด้งของมือตัวเอง แต้มเท่ากันถือว่าเสมอ</p>
+  </details>
+
+<script>
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SUITS = ['♠','♥','♦','♣'];
+const START = 1000;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmt = n => n.toLocaleString('en-US');
+
+let deck = [], player = [], dealer = [], bet = 10, phase = 'bet', dealerHidden = true;
+let balance = START, stats = { w: 0, l: 0, d: 0 };
+try {
+  const saved = JSON.parse(localStorage.getItem('pokdeng') || 'null');
+  if (saved) { balance = saved.balance; stats = saved.stats; }
+} catch (e) {}
+function save() { try { localStorage.setItem('pokdeng', JSON.stringify({ balance, stats })); } catch (e) {} }
+
+function newDeck() {
+  const d = [];
+  for (const r of RANKS) for (const s of SUITS) d.push({ r, s });
+  for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+  return d;
+}
+
+const pts = c => { const i = RANKS.indexOf(c.r) + 1; return i >= 10 ? 0 : i; };
+const score = h => h.reduce((a, c) => a + pts(c), 0) % 10;
+
+function isStraight(h) {
+  const idx = h.map(c => RANKS.indexOf(c.r)).sort((a, b) => a - b);
+  if (idx[0] + 1 === idx[1] && idx[1] + 1 === idx[2]) return idx[2];
+  if (idx[0] === 0 && idx[1] === 11 && idx[2] === 12) return 13;   // Q K A
+  return -1;
+}
+
+// Returns { key (higher wins), mult, name }
+function evaluate(h) {
+  const s = score(h);
+  const sameSuit = h.every(c => c.s === h[0].s);
+  if (h.length === 2) {
+    const deng = sameSuit || h[0].r === h[1].r;
+    const name = (s >= 8 ? `ป๊อก ${s}` : `${s} แต้ม`) + (deng ? ' · 2 เด้ง' : '');
+    return { key: s >= 8 ? 1000 + s : s, mult: deng ? 2 : 1, name, pok: s >= 8, special: s >= 8 || deng };
+  }
+  const st = isStraight(h);
+  if (h.every(c => c.r === h[0].r)) return { key: 500 + RANKS.indexOf(h[0].r), mult: 5, name: `ตอง ${h[0].r} · 5 เด้ง`, special: true };
+  if (st >= 0 && sameSuit) return { key: 400 + st, mult: 5, name: 'สเตรทฟลัช · 5 เด้ง', special: true };
+  if (st >= 0) return { key: 300 + st, mult: 3, name: 'เรียง · 3 เด้ง', special: true };
+  if (h.every(c => ['J', 'Q', 'K'].includes(c.r))) return { key: 200, mult: 3, name: 'เซียน · 3 เด้ง', special: true };
+  return { key: s, mult: sameSuit ? 3 : 1, name: `${s} แต้ม` + (sameSuit ? ' · 3 เด้ง' : ''), special: sameSuit };
+}
+
+function cardEl(c, hidden) {
+  const d = document.createElement('div');
+  if (hidden) { d.className = 'card back'; return d; }
+  d.className = 'card' + (c.s === '♥' || c.s === '♦' ? ' red' : '');
+  d.innerHTML = `<div class="corner">${c.r}<small>${c.s}</small></div><div class="mid">${c.s}</div>`;
+  return d;
+}
+
+function renderHand(el, hand, hidden, animateFrom) {
+  el.innerHTML = '';
+  hand.forEach((c, i) => {
+    const node = cardEl(c, hidden);
+    if (i < animateFrom) node.style.animation = 'none';
+    el.appendChild(node);
+  });
+}
+
+function setLabel(el, hand, hidden) {
+  if (!hand.length || hidden) { el.textContent = hidden && hand.length ? `${hand.length} ใบ` : ''; el.className = 'hand-label'; return; }
+  const ev = evaluate(hand);
+  el.textContent = ev.name;
+  el.className = 'hand-label' + (ev.special ? ' special' : '');
+}
+
+let shownP = 0, shownD = 0;
+function render() {
+  renderHand($('playerCards'), player, false, shownP);
+  renderHand($('dealerCards'), dealer, dealerHidden, dealerHidden ? shownD : 0);
+  if (!dealerHidden) $('dealerCards').querySelectorAll('.card').forEach(n => (n.style.animation = ''));
+  shownP = player.length; shownD = dealer.length;
+  setLabel($('playerLabel'), player, false);
+  setLabel($('dealerLabel'), dealer, dealerHidden);
+  $('balance').textContent = fmt(balance);
+  $('stats').textContent = `ชนะ ${stats.w} · แพ้ ${stats.l} · เสมอ ${stats.d}`;
+
+  document.querySelectorAll('.chip').forEach(ch => {
+    const v = +ch.dataset.v;
+    ch.classList.toggle('sel', v === bet && phase === 'bet');
+    ch.disabled = phase !== 'bet' || v > balance;
+  });
+  $('betInfo').textContent = phase === 'bet' ? `เดิมพัน ${fmt(bet)} ชิป` : `เดิมพันตานี้ ${fmt(bet)} ชิป`;
+
+  const btns = $('btns');
+  btns.innerHTML = '';
+  const add = (text, fn, primary) => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (primary ? ' primary' : '');
+    b.textContent = text; b.onclick = fn; btns.appendChild(b);
+  };
+  if (phase === 'bet') {
+    if (balance < 10) add('เติมชิป 1,000', () => { balance = START; save(); setMsg('เติมชิปแล้ว เริ่มใหม่ได้เลย', ''); render(); }, true);
+    else add('แจกไพ่', deal, true);
+  } else if (phase === 'play') {
+    add('จั่วอีกใบ', () => playerAct(true), true);
+    add('ไม่จั่ว', () => playerAct(false));
+  } else if (phase === 'done') {
+    add('ตาต่อไป', nextRound, true);
+  }
+}
+
+function setMsg(text, cls) { $('message').textContent = text; $('message').className = 'message' + (cls ? ' ' + cls : ''); }
+
+async function deal() {
+  if (bet > balance) bet = [500, 100, 50, 10].find(v => v <= balance);
+  phase = 'dealing'; deck = newDeck(); player = []; dealer = []; dealerHidden = true; shownP = shownD = 0;
+  setMsg('กำลังแจกไพ่…', '');
+  for (let i = 0; i < 2; i++) {
+    player.push(deck.pop()); render(); await sleep(280);
+    dealer.push(deck.pop()); render(); await sleep(280);
+  }
+  const pe = evaluate(player), de = evaluate(dealer);
+  if (pe.pok || de.pok) {
+    setMsg(pe.pok && de.pok ? 'ป๊อกทั้งคู่!' : pe.pok ? `คุณได้ป๊อก ${score(player)}!` : 'เจ้ามือป๊อก!', '');
+    await sleep(700);
+    return settle();
+  }
+  phase = 'play';
+  setMsg('จะจั่วไพ่ใบที่ 3 ไหม?', '');
+  render();
+}
+
+async function playerAct(draw) {
+  phase = 'dealer';
+  if (draw) { player.push(deck.pop()); render(); await sleep(450); }
+  setMsg('เจ้ามือกำลังตัดสินใจ…', '');
+  render();
+  await sleep(700);
+  const s = score(dealer);
+  if (s <= 3 || (s <= 5 && Math.random() < (s === 4 ? .75 : .4))) {
+    dealer.push(deck.pop());
+    setMsg('เจ้ามือจั่วเพิ่ม 1 ใบ', '');
+    render(); await sleep(650);
+  } else {
+    setMsg('เจ้ามือไม่จั่ว', '');
+    await sleep(500);
+  }
+  settle();
+}
+
+function settle() {
+  dealerHidden = false;
+  const pe = evaluate(player), de = evaluate(dealer);
+  if (pe.key > de.key) {
+    const win = bet * pe.mult;
+    balance += win; stats.w++;
+    setMsg(`คุณชนะ! ได้ ${fmt(win)} ชิป` + (pe.mult > 1 ? ` (${pe.mult} เด้ง)` : ''), 'win');
+  } else if (pe.key < de.key) {
+    const loss = Math.min(balance, bet * de.mult);
+    balance -= loss; stats.l++;
+    setMsg(`เจ้ามือชนะ เสีย ${fmt(loss)} ชิป` + (de.mult > 1 ? ` (เจ้ามือ ${de.mult} เด้ง)` : ''), 'lose');
+  } else {
+    stats.d++;
+    setMsg('เสมอ ได้ชิปคืน', '');
+  }
+  save();
+  phase = 'done';
+  render();
+}
+
+function nextRound() {
+  phase = 'bet'; player = []; dealer = []; dealerHidden = true;
+  setMsg(balance >= 10 ? 'เลือกจำนวนเดิมพัน แล้วกด "แจกไพ่"' : 'ชิปหมดแล้ว กดเติมชิปเพื่อเล่นต่อ', '');
+  render();
+}
+
+document.querySelectorAll('.chip').forEach(ch => ch.onclick = () => { bet = +ch.dataset.v; render(); });
+render();
+</script>
+</body>
+</html>
