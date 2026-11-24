@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โป๊กเกอร์ เท็กซัสโฮลเด็ม</title>
+<style>
+  :root {
+    --felt: #0e4a4f;
+    --felt-dark: #062226;
+    --rail: #3b2414;
+    --panel: rgba(0,0,0,.32);
+    --text: #ecfeff;
+    --muted: #a5d8dd;
+    --gold: #fbbf24;
+    --win: #86efac;
+    --red: #dc2626;
+    --active: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    background: radial-gradient(ellipse at center, var(--felt), var(--felt-dark) 85%);
+    font-family: "Segoe UI", "Leelawadee UI", Tahoma, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 18px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
+  }
+  .top { width: 100%; max-width: 860px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .back { color: var(--muted); text-decoration: none; font-size: 14px; }
+  h1 { margin: 0; font-size: 24px; }
+  .blinds { font-size: 13px; color: var(--muted); }
+
+  .bots { width: 100%; max-width: 860px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .seat {
+    background: var(--panel); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+    border: 2px solid transparent; transition: border-color .2s, opacity .2s; min-width: 0;
+  }
+  .seat.turn { border-color: var(--active); box-shadow: 0 0 16px rgba(56,189,248,.45); }
+  .seat.win { border-color: var(--gold); box-shadow: 0 0 18px rgba(251,191,36,.5); }
+  .seat.folded, .seat.out { opacity: .45; }
+  .seat-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .name { font-weight: 700; display: flex; gap: 6px; align-items: center; }
+  .badge { font-size: 11px; font-weight: 800; background: #fff; color: #111; border-radius: 999px; padding: 1px 7px; }
+  .chips { font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 700; }
+  .status { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; color: var(--muted); min-height: 18px; }
+  .status .bet { color: #fff; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hand-name { font-size: 13px; font-weight: 700; color: var(--gold); min-height: 18px; }
+  .cards { display: flex; gap: 6px; }
+
+  .card {
+    width: 50px; height: 70px; border-radius: 6px; background: #fff; color: #111; position: relative; flex: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,.45); animation: deal .3s ease-out;
+  }
+  .card.red { color: var(--red); }
+  .card .corner { position: absolute; top: 4px; left: 5px; font-weight: 800; font-size: 15px; line-height: 1; text-align: center; }
+  .card .corner small { display: block; font-size: 13px; }
+  .card .mid { position: absolute; right: 5px; bottom: 3px; font-size: 24px; }
+  .card.back { background: repeating-linear-gradient(45deg, #7f1d1d 0 6px, #b91c1c 6px 12px); border: 3px solid #fff; }
+  .card.slot { background: transparent; border: 2px dashed rgba(255,255,255,.2); box-shadow: none; animation: none; }
+  .card.dim { filter: brightness(.6); }
+  @keyframes deal { from { transform: translateY(-24px) rotate(-5deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+
+  .felt {
+    width: 100%; max-width: 860px; border-radius: 120px; border: 10px solid var(--rail);
+    background: radial-gradient(ellipse at center, #13666c, var(--felt) 75%);
+    padding: 22px 16px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    box-shadow: inset 0 0 30px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.4);
+  }
+  .board { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .board .card { width: 62px; height: 88px; }
+  .board .card .corner { font-size: 18px; }
+  .board .card .mid { font-size: 30px; }
+  .pot { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pot span { color: var(--gold); }
+  .message { text-align: center; font-weight: 600; min-height: 22px; max-width: 640px; line-height: 1.5; }
+  .message.good { color: var(--win); }
+
+  .me { width: 100%; max-width: 860px; }
+  .me .card { width: 70px; height: 98px; }
+  .me .card .corner { font-size: 20px; }
+  .me .card .mid { font-size: 34px; }
+
+  .controls { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .btn {
+    font: inherit; font-size: 15px; font-weight: 700; border: none; border-radius: 8px; padding: 11px 20px; cursor: pointer;
+    background: #e0f2fe; color: #0c4a6e; min-width: 96px;
+  }
+  .btn.fold { background: #fecaca; color: #7f1d1d; }
+  .btn.primary { background: var(--gold); color: #111; }
+  .btn.small { padding: 6px 12px; font-size: 13px; min-width: 0; background: rgba(255,255,255,.15); color: var(--text); }
+  .btn:hover { filter: brightness(.95); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  input[type=range] { width: min(320px, 80vw); accent-color: var(--gold); }
+  .waiting { color: var(--muted); font-size: 14px; }
+
+  details { width: 100%; max-width: 860px; background: var(--panel); border-radius: 10px; padding: 10px 16px; font-size: 14px; line-height: 1.7; }
+  summary { cursor: pointer; font-weight: 700; }
+  details ol { margin: 6px 0; padding-left: 22px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="index.html">← กลับหน้ารวมเกม</a>
+    <span class="blinds">Blinds 10 / 20 · เริ่มคนละ 1,000 ชิป</span>
+  </div>
+  <h1>โป๊กเกอร์ เท็กซัสโฮลเด็ม</h1>
+
+  <div class="bots" id="bots"></div>
+
+  <div class="felt">
+    <div class="board" id="board"></div>
+    <div class="pot">พอต: <span id="pot">0</span></div>
+    <div class="message" id="message"></div>
+  </div>
+
+  <div class="seat me" id="me"></div>
+
+  <div class="controls">
+    <div class="row" id="actionRow">
+      <button class="btn fold" id="foldBtn">หมอบ</button>
+      <button class="btn" id="callBtn">เช็ค</button>
+      <button class="btn primary" id="raiseBtn">เรส</button>
+    </div>
+    <div class="row" id="raiseRow">
+      <button class="btn small" data-preset="min">ขั้นต่ำ</button>
+      <button class="btn small" data-preset="half">½ พอต</button>
+      <button class="btn small" data-preset="pot">พอต</button>
+      <button class="btn small" data-preset="all">ออลอิน</button>
+      <input type="range" id="raiseAmt" step="10" aria-label="จำนวนเรส">
+    </div>
+    <div class="row" id="nextRow"></div>
+    <div class="waiting" id="waiting"></div>
+  </div>
+
+  <details>
+    <summary>กติกาและลำดับไพ่</summary>
+    <p>ทุกคนได้ไพ่ส่วนตัว 2 ใบ และมีไพ่กลางกองรวม 5 ใบ (Flop 3 ใบ, Turn 1 ใบ, River 1 ใบ) ใช้ไพ่ 5 ใบที่ดีที่สุดจากทั้งหมด 7 ใบ มีการเดิมพัน 4 รอบ ก่อนเปิดไพ่กลางและหลังเปิดแต่ละครั้ง</p>
+    <p>เลือกได้ว่าจะ <b>หมอบ</b> (ทิ้งไพ่), <b>เช็ค</b> (ผ่านเมื่อไม่มีใครลง), <b>คอล</b> (ลงเท่าคนก่อนหน้า) หรือ <b>เรส</b> (เพิ่มเดิมพัน)</p>
+    <p>ลำดับไพ่จากสูงไปต่ำ:</p>
+    <ol>
+      <li>รอยัลฟลัช: A K Q J 10 ดอกเดียวกัน</li>
+      <li>สเตรทฟลัช: เรียง 5 ใบ ดอกเดียวกัน</li>
+      <li>โฟร์การ์ด: เลขเดียวกัน 4 ใบ</li>
+      <li>ฟูลเฮาส์: ตอง + คู่</li>
+      <li>ฟลัช: ดอกเดียวกัน 5 ใบ</li>
+      <li>สเตรท: เรียง 5 ใบ</li>
+      <li>ตอง: เลขเดียวกัน 3 ใบ</li>
+      <li>ทูแพร์: 2 คู่</li>
+      <li>วันแพร์: 1 คู่</li>
+      <li>ไฮการ์ด: ไม่เข้าอะไรเลย ดูไพ่ใบสูงสุด</li>
+    </ol>
+  </details>
+
+<script>
+const SB = 10, BB = 20, START = 1000, BOT_DELAY = 750;
+const SUITS = ['♠', '♥', '♦', '♣'];
+const LABEL = v => (v <= 10 ? String(v) : { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }[v]);
+const HAND_NAMES = ['ไฮการ์ด', 'วันแพร์', 'ทูแพร์', 'ตอง', 'สเตรท', 'ฟลัช', 'ฟูลเฮาส์', 'โฟร์การ์ด', 'สเตรทฟลัช'];
+const STAGES = ['Pre-flop', 'Flop', 'Turn', 'River'];
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmt = n => n.toLocaleString('en-US');
+
+let players = [], deck = [], board = [], dealer = -1, stage = 0, currentBet = 0, minRaise = BB, turn = -1;
+let handOver = true, busy = false, gameState = 'playing';
+
+// ---------- Hand evaluation ----------
+function eval5(cs) {
+  const vs = cs.map(c => c.v).sort((a, b) => b - a);
+  const flush = cs.every(c => c.s === cs[0].s);
+  let straightHi = 0;
+  if (new Set(vs).size === 5) {
+    if (vs[0] - vs[4] === 4) straightHi = vs[0];
+    else if (vs[0] === 14 && vs[1] === 5) straightHi = 5;          // A-2-3-4-5
+  }
+  const cnt = {};
+  vs.forEach(v => (cnt[v] = (cnt[v] || 0) + 1));
+  const groups = Object.entries(cnt).map(([v, c]) => [c, +v]).sort((a, b) => b[0] - a[0] || b[1] - a[1]);
+  const kick = groups.map(g => g[1]);
+  if (straightHi && flush) return [8, straightHi];
+  if (groups[0][0] === 4) return [7, ...kick];
+  if (groups[0][0] === 3 && groups[1][0] === 2) return [6, ...kick];
+  if (flush) return [5, ...vs];
+  if (straightHi) return [4, straightHi];
+  if (groups[0][0] === 3) return [3, ...kick];
+  if (groups[0][0] === 2 && groups[1][0] === 2) return [2, ...kick];
+  if (groups[0][0] === 2) return [1, ...kick];
+  return [0, ...vs];
+}
+
+function cmp(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] || 0) - (b[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+function bestHand(cards) {
+  let best = null;
+  const n = cards.length;
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++)
+    for (let d = c + 1; d < n; d++) for (let e = d + 1; e < n; e++) {
+      const v = eval5([cards[a], cards[b], cards[c], cards[d], cards[e]]);
+      if (!best || cmp(v, best) > 0) best = v;
+    }
+  return best;
+}
+
+function handName(v) {
+  if (v[0] === 8 && v[1] === 14) return 'รอยัลฟลัช';
+  const n = HAND_NAMES[v[0]];
+  if (v[0] === 1) return `${n} (${LABEL(v[1])})`;
+  if (v[0] === 2) return `${n} (${LABEL(v[1])} กับ ${LABEL(v[2])})`;
+  if (v[0] === 3 || v[0] === 7) return `${n} (${LABEL(v[1])})`;
+  return n;
+}
+
+// Pair / trips / quads made from these cards alone (used to spot "the board plays")
+function groupCat(cards) {
+  const cnt = {};
+  cards.forEach(c => (cnt[c.v] = (cnt[c.v] || 0) + 1));
+  const g = Object.values(cnt).sort((a, b) => b - a);
+  if (g[0] === 4) return 7;
+  if (g[0] === 3 && g[1] >= 2) return 6;
+  if (g[0] === 3) return 3;
+  if (g[0] === 2 && g[1] === 2) return 2;
+  if (g[0] === 2) return 1;
+  return 0;
+}
+
+// ---------- Table helpers ----------
+function newDeck() {
+  const d = [];
+  for (let v = 2; v <= 14; v++) for (const s of SUITS) d.push({ v, s });
+  for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+  return d;
+}
+const potTotal = () => players.reduce((a, p) => a + p.total, 0);
+function nextSeat(i) {
+  for (let k = 1; k <= players.length; k++) { const j = (i + k) % players.length; if (!players[j].out) return j; }
+  return -1;
+}
+function nextToAct(i) {
+  for (let k = 1; k <= players.length; k++) {
+    const j = (i + k) % players.length, p = players[j];
+    if (!p.out && !p.folded && !p.allIn) return j;
+  }
+  return -1;
+}
+function put(p, amt) {
+  amt = Math.min(amt, p.chips);
+  p.chips -= amt; p.bet += amt; p.total += amt;
+  if (p.chips === 0) p.allIn = true;
+}
+function msg(text, good) { $('message').textContent = text; $('message').className = 'message' + (good ? ' good' : ''); }
+
+// ---------- Game flow ----------
+function newGame() {
+  players = ['คุณ', 'เสือ', 'หมี', 'จิ้งจอก'].map((name, i) => ({ name, human: i === 0, chips: START, out: false }));
+  dealer = Math.floor(Math.random() * players.length);
+  gameState = 'playing';
+  startHand();
+}
+
+function startHand() {
+  players.forEach(p => {
+    if (p.chips <= 0) p.out = true;
+    Object.assign(p, { hand: [], bet: 0, total: 0, folded: p.out, allIn: false, acted: false, last: '', win: false, raises: 0, shown: false, val: null });
+  });
+  if (players[0].out) { gameState = 'lost'; handOver = true; render(); return; }
+  if (players.filter(p => !p.out).length === 1) { gameState = 'won'; handOver = true; render(); return; }
+
+  deck = newDeck(); board = []; handOver = false; stage = 0;
+  dealer = nextSeat(dealer);
+  const heads = players.filter(p => !p.out).length === 2;
+  const sb = heads ? dealer : nextSeat(dealer), bb = nextSeat(sb);
+  put(players[sb], SB); players[sb].last = 'SB';
+  put(players[bb], BB); players[bb].last = 'BB';
+  for (let k = 0; k < 2; k++) players.forEach(p => { if (!p.out) p.hand.push(deck.pop()); });
+  currentBet = BB; minRaise = BB;
+  turn = nextToAct(bb);
+  msg('แจกไพ่แล้ว รอบเดิมพันแรก (Pre-flop)');
+  advance();
+}
+
+async function advance() {
+  const live = players.filter(p => !p.out && !p.folded);
+  if (live.length === 1) return winUncontested(live[0]);
+  const can = live.filter(p => !p.allIn);
+  const done = can.length === 0 ||
+    can.every(p => p.acted && p.bet === currentBet) ||
+    (can.length === 1 && can[0].bet >= currentBet && live.every(p => p.allIn || p === can[0]) && (can[0].acted || currentBet > 0));
+  if (done) return nextStage();
+
+  const p = players[turn];
+  if (p.human) { busy = false; render(); return; }
+  busy = true; render();
+  await sleep(BOT_DELAY);
+  botAct(p);
+}
+
+function act(p, type, to) {
+  if (type === 'fold') { p.folded = true; p.last = 'หมอบ'; }
+  else if (type === 'check') { p.last = 'เช็ค'; }
+  else if (type === 'call') {
+    const amt = Math.min(currentBet - p.bet, p.chips);
+    put(p, amt);
+    p.last = p.allIn ? 'ออลอิน' : `คอล ${fmt(amt)}`;
+  } else if (type === 'raise') {
+    to = Math.min(to, p.bet + p.chips);
+    const wasBet = currentBet === 0;
+    put(p, to - p.bet);
+    if (p.bet > currentBet) {
+      const inc = p.bet - currentBet;
+      if (inc >= minRaise) minRaise = inc;
+      currentBet = p.bet;
+      players.forEach(o => { if (o !== p) o.acted = false; });
+    }
+    p.raises++;
+    p.last = p.allIn ? `ออลอิน ${fmt(p.bet)}` : `${wasBet ? 'เบท' : 'เรส'} ${fmt(p.bet)}`;
+  }
+  p.acted = true;
+  turn = nextToAct(players.indexOf(p));
+  advance();
+}
+
+async function nextStage() {
+  players.forEach(p => {
+    p.bet = 0; p.acted = false; p.raises = 0;
+    if (!p.folded && !p.allIn && !p.out) p.last = '';
+  });
+  currentBet = 0; minRaise = BB;
+  if (stage === 3) return showdown();
+  stage++;
+  deck.pop();                                    // burn card
+  for (let k = 0; k < (stage === 1 ? 3 : 1); k++) board.push(deck.pop());
+  msg(`เปิดไพ่กลาง (${STAGES[stage]})`);
+  busy = true; render();
+  const can = players.filter(p => !p.out && !p.folded && !p.allIn);
+  if (can.length <= 1) {                         // nobody left to bet: run out the board
+    players.forEach(p => { if (!p.out && !p.folded) p.shown = true; });
+    render();
+    await sleep(1100);
+    return nextStage();
+  }
+  await sleep(500);
+  turn = nextToAct(dealer);
+  advance();
+}
+
+function winUncontested(p) {
+  const pot = potTotal();
+  p.chips += pot; p.win = true;
+  msg(`${p.name} ชนะพอต ${fmt(pot)} ชิป (คนอื่นหมอบหมด)`, p.human);
+  endHand();
+}
+
+function showdown() {
+  const live = players.filter(p => !p.out && !p.folded);
+  live.forEach(p => { p.shown = true; p.val = bestHand(p.hand.concat(board)); });
+  const levels = [...new Set(live.map(p => p.total))].sort((a, b) => a - b);
+  const won = new Map();
+  let prev = 0;
+  levels.forEach((L, li) => {
+    let pot = 0;
+    players.forEach(p => { pot += Math.min(p.total, L) - Math.min(p.total, prev); });
+    if (li === levels.length - 1) players.forEach(p => { if (p.total > L) pot += p.total - L; });
+    const elig = live.filter(p => p.total >= L);
+    let best = null, ws = [];
+    elig.forEach(p => {
+      const c = best ? cmp(p.val, best) : 1;
+      if (c > 0) { best = p.val; ws = [p]; } else if (c === 0) ws.push(p);
+    });
+    const share = Math.floor(pot / ws.length);
+    ws.forEach((w, i) => {
+      const amt = share + (i === 0 ? pot - share * ws.length : 0);
+      w.chips += amt; won.set(w, (won.get(w) || 0) + amt);
+    });
+    prev = L;
+  });
+  const parts = [];
+  won.forEach((amt, w) => {
+    // A pot only one player could win is just their own uncalled chips coming back
+    const others = live.some(o => o !== w);
+    if (others) { w.win = true; parts.push(`${w.name} ได้ ${fmt(amt)} ชิป ด้วย${handName(w.val)}`); }
+  });
+  msg(parts.join(' · ') || 'เปิดไพ่', [...won.keys()].some(w => w.human && w.win));
+  endHand();
+}
+
+function endHand() {
+  handOver = true; busy = false; turn = -1;
+  if (players[0].chips <= 0) gameState = 'lost';
+  else if (players.filter(p => p.chips > 0).length === 1) gameState = 'won';
+  render();
+}
+
+// ---------- Bots ----------
+function strength(p) {
+  const [a, b] = p.hand, hi = Math.max(a.v, b.v), lo = Math.min(a.v, b.v);
+  if (!board.length) {
+    let s = (hi + lo - 4) / 48;
+    if (a.v === b.v) s = 0.5 + a.v / 28;
+    if (a.s === b.s) s += 0.06;
+    if (hi - lo === 1) s += 0.04;
+    if (hi >= 13) s += 0.05;
+    return Math.min(1, s);
+  }
+  const v = bestHand(p.hand.concat(board));
+  if (v[0] <= 3 && v[0] === groupCat(board)) return 0.16 + (hi - 2) / 60;   // only the board's pair/trips
+  let s = [0.14, 0.4, 0.62, 0.74, 0.82, 0.86, 0.93, 0.98, 1][v[0]];
+  if (v[0] === 1) s = 0.3 + (v[1] - 2) / 12 * 0.22;
+  return s + (hi - 8) / 80;
+}
+
+function botAct(p) {
+  const toCall = currentBet - p.bet, pot = potTotal();
+  const s = strength(p) + (Math.random() - 0.5) * 0.16;
+  const odds = toCall / (pot + toCall || 1);
+  const othersCanAct = players.some(o => o !== p && !o.out && !o.folded && !o.allIn);
+  const canRaise = othersCanAct && p.raises < 2 && p.chips > toCall;
+  const raiseTo = () => Math.min(
+    currentBet + Math.max(minRaise, Math.round(pot * (0.5 + Math.random() * 0.5) / 10) * 10),
+    p.bet + p.chips);
+  if (toCall === 0) {
+    if (canRaise && (s > 0.66 || Math.random() < 0.08)) return act(p, 'raise', raiseTo());
+    return act(p, 'check');
+  }
+  if (canRaise && s > 0.8 && Math.random() < 0.65) return act(p, 'raise', raiseTo());
+  if (s > odds + 0.12 || (toCall <= BB && s > 0.22) || Math.random() < 0.04) {
+    if (toCall >= p.chips && s < 0.6) return act(p, 'fold');
+    return act(p, 'call');
+  }
+  return act(p, 'fold');
+}
+
+// ---------- Rendering ----------
+function cardEl(c, faceUp, dim) {
+  const d = document.createElement('div');
+  if (!c) { d.className = 'card slot'; return d; }
+  if (!faceUp) { d.className = 'card back'; return d; }
+  d.className = 'card' + (c.s === '♥' || c.s === '♦' ? ' red' : '') + (dim ? ' dim' : '');
+  d.innerHTML = `<div class="corner">${LABEL(c.v)}<small>${c.s}</small></div><div class="mid">${c.s}</div>`;
+  return d;
+}
+
+function seatHTML(el, p, i) {
+  const cls = ['seat'];
+  if (p.human) cls.push('me');
+  if (!handOver && turn === i) cls.push('turn');
+  if (p.win) cls.push('win');
+  if (p.out) cls.push('out'); else if (p.folded) cls.push('folded');
+  el.className = cls.join(' ');
+  const dealerBadge = i === dealer && !p.out ? '<span class="badge">D</span>' : '';
+  let hn = '';
+  if (p.val && p.shown) hn = handName(p.val);
+  else if (p.human && !p.folded && board.length >= 3) hn = handName(bestHand(p.hand.concat(board)));
+  el.innerHTML = `
+    <div class="seat-head"><span class="name">${p.name}${dealerBadge}</span><span class="chips">${p.out ? 'หมดตัว' : fmt(p.chips)}</span></div>
+    <div class="status"><span>${p.last}</span><span class="bet">${p.bet ? 'ลง ' + fmt(p.bet) : ''}</span></div>
+    <div class="hand-name">${hn}</div>`;
+  const cards = document.createElement('div');
+  cards.className = 'cards';
+  p.hand.forEach(c => cards.appendChild(cardEl(c, p.human || p.shown, p.folded)));
+  el.appendChild(cards);
+}
+
+let lastBoardLen = 0, lastSig = '';
+function render() {
+  const sig = players.map(p => p.hand.length + (p.shown ? 's' : '')).join() + board.length;
+  const animate = sig !== lastSig; lastSig = sig;
+
+  const bots = $('bots');
+  bots.innerHTML = '';
+  players.forEach((p, i) => {
+    if (p.human) seatHTML($('me'), p, i);
+    else { const d = document.createElement('div'); seatHTML(d, p, i); bots.appendChild(d); }
+  });
+
+  const b = $('board');
+  b.innerHTML = '';
+  for (let k = 0; k < 5; k++) {
+    const node = cardEl(board[k], true);
+    if (k < lastBoardLen) node.style.animation = 'none';
+    b.appendChild(node);
+  }
+  lastBoardLen = board.length;
+  if (!animate) document.querySelectorAll('.seat .card').forEach(n => (n.style.animation = 'none'));
+  $('pot').textContent = fmt(potTotal());
+
+  // Controls
+  const me = players[0];
+  const myTurn = !handOver && !busy && turn === 0;
+  $('actionRow').hidden = !myTurn;
+  $('raiseRow').hidden = true;
+  $('nextRow').innerHTML = '';
+  $('waiting').textContent = '';
+
+  if (myTurn) {
+    const toCall = currentBet - me.bet;
+    $('callBtn').textContent = toCall === 0 ? 'เช็ค' : toCall >= me.chips ? `ออลอิน ${fmt(me.chips)}` : `คอล ${fmt(toCall)}`;
+    const maxTo = me.bet + me.chips, minTo = Math.min(currentBet + minRaise, maxTo);
+    const othersCanAct = players.some(o => o !== me && !o.out && !o.folded && !o.allIn);
+    const canRaise = othersCanAct && maxTo > currentBet && toCall < me.chips;
+    $('raiseBtn').hidden = !canRaise;
+    if (canRaise) {
+      $('raiseRow').hidden = false;
+      const r = $('raiseAmt');
+      r.min = minTo; r.max = maxTo;
+      if (+r.value < minTo || +r.value > maxTo || r.dataset.stage !== String(stage) + currentBet) r.value = minTo;
+      r.dataset.stage = String(stage) + currentBet;
+      updateRaiseLabel();
+    }
+  } else if (handOver) {
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    if (gameState === 'lost') { btn.textContent = 'เริ่มเกมใหม่'; btn.onclick = newGame; msg('ชิปหมดแล้ว ลองใหม่อีกครั้ง!'); }
+    else if (gameState === 'won') { btn.textContent = 'เล่นอีกครั้ง'; btn.onclick = newGame; msg('คุณกวาดชิปทั้งโต๊ะ ชนะเกมนี้!', true); }
+    else { btn.textContent = 'แจกตาต่อไป'; btn.onclick = startHand; }
+    $('nextRow').appendChild(btn);
+  } else if (turn >= 0) {
+    $('waiting').textContent = `รอ ${players[turn].name} ตัดสินใจ…`;
+  }
+}
+
+function updateRaiseLabel() {
+  const me = players[0], v = +$('raiseAmt').value;
+  $('raiseBtn').textContent = v >= me.bet + me.chips ? `ออลอิน ${fmt(v)}` : `${currentBet === 0 ? 'เบท' : 'เรสเป็น'} ${fmt(v)}`;
+}
+
+$('foldBtn').onclick = () => act(players[0], 'fold');
+$('callBtn').onclick = () => act(players[0], currentBet - players[0].bet === 0 ? 'check' : 'call');
+$('raiseBtn').onclick = () => act(players[0], 'raise', +$('raiseAmt').value);
+$('raiseAmt').oninput = updateRaiseLabel;
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
+  const r = $('raiseAmt'), me = players[0], pot = potTotal();
+  const target = { min: +r.min, half: currentBet + Math.round(pot / 2 / 10) * 10, pot: currentBet + pot, all: me.bet + me.chips }[b.dataset.preset];
+  r.value = Math.max(+r.min, Math.min(+r.max, target));
+  updateRaiseLabel();
+});
+
+newGame();
+</script>
+</body>
+</html>
