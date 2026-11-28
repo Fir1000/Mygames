@@ -28,5 +28,12 @@ rem Upgrade yt-dlp every start: YouTube/TikTok change often and old versions bre
   exit /b 1
 )
 
+rem Let phones on the same Wi-Fi connect (port 8765, local network only). Asks for admin once.
+netsh advfirewall firewall show rule name="Mygames Converter" >nul 2>nul
+if errorlevel 1 (
+  echo กำลังขอสิทธิ์เปิดไฟร์วอลล์ให้มือถือเชื่อมต่อได้ - กด Yes ในหน้าต่างที่เด้งขึ้นมา
+  powershell -NoProfile -Command "Start-Process netsh -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList 'advfirewall firewall add rule name=\"Mygames Converter\" dir=in action=allow protocol=TCP localport=8765 remoteip=localsubnet profile=any'" 2>nul
+)
+
 ".venv\Scripts\python.exe" server.py
 pause

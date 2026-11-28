@@ -89,6 +89,13 @@
   .bar.indet > div { width: 30%; animation: slide 1.2s infinite ease-in-out; }
   @keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
 
+  .phone { display: none; gap: 18px; align-items: center; }
+  .phone.show { display: flex; }
+  .phone img { background: #fff; border-radius: 10px; padding: 4px; flex-shrink: 0; }
+  .phone h3 { margin: 0 0 6px; font-size: 16px; }
+  .phone p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .phone code { font-size: 16px; color: var(--accent); background: #0006; padding: 2px 8px; border-radius: 6px; user-select: all; }
+  .phone .hint { font-size: 12px; }
   .note { color: var(--muted); font-size: 13px; line-height: 1.7; margin-top: 32px; border-top: 1px solid var(--line); padding-top: 16px; }
   @media (max-width: 520px) {
     .preview img { width: 110px; }
@@ -104,7 +111,12 @@
 
   <div class="panel status" id="status">
     <h3>ยังไม่ได้เปิดตัวแปลงไฟล์</h3>
-    <ol>
+    <ol id="phoneSteps" hidden>
+      <li>บนคอมพิวเตอร์ ดับเบิลคลิก <code>Mygames\converter\start.bat</code></li>
+      <li>ให้มือถือกับคอมต่อ <b>Wi-Fi เดียวกัน</b></li>
+      <li>ใช้กล้องมือถือสแกน QR code ที่ขึ้นบนหน้าจอคอม (หรือพิมพ์ที่อยู่ <code>http://…:8765</code> ที่แสดงอยู่)</li>
+    </ol>
+    <ol id="pcSteps">
       <li>เปิดโฟลเดอร์ <code>Mygames\converter</code></li>
       <li>ดับเบิลคลิก <code>start.bat</code> (ครั้งแรกจะติดตั้งให้เอง รอ 1–2 นาที)</li>
       <li>หน้านี้จะเชื่อมต่อให้อัตโนมัติเมื่อพร้อม</li>
@@ -139,6 +151,16 @@
     </div>
   </div>
 
+  <div class="panel phone" id="phone">
+    <img id="qr" alt="QR code สำหรับเปิดบนมือถือ" width="132" height="132">
+    <div>
+      <h3>ใช้บนมือถือ</h3>
+      <p>ต่อ Wi-Fi เดียวกับคอมเครื่องนี้ แล้วสแกน QR code ด้วยกล้องมือถือ หรือพิมพ์</p>
+      <p><code id="lanUrl"></code></p>
+      <p class="hint">ถ้ามือถือเปิดไม่ขึ้น: ปิดแล้วเปิด start.bat ใหม่ แล้วกด Yes เมื่อ Windows ขอสิทธิ์เปิดไฟร์วอลล์ · มือถือต้องไม่ได้ใช้เน็ตมือถือ (4G/5G) อยู่</p>
+    </div>
+  </div>
+
   <h2>รายการแปลงไฟล์ <span class="spacer"></span><button id="folder">เปิดโฟลเดอร์ไฟล์</button><button id="clear">ล้างรายการ</button></h2>
   <div class="jobs" id="jobs"><div class="empty">ยังไม่มีไฟล์ วางลิงก์ด้านบนเพื่อเริ่ม</div></div>
 
@@ -150,8 +172,15 @@
 </div>
 
 <script>
-const API = location.port === "8765" ? "" : "http://127.0.0.1:8765";
-if (location.port === "8765") document.getElementById("back").style.display = "none";
+const FROM_SERVER = location.port === "8765";
+const API = FROM_SERVER ? "" : "http://127.0.0.1:8765";
+const IS_PHONE = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;
+if (FROM_SERVER) document.getElementById("back").style.display = "none";
+// A phone can't reach 127.0.0.1 on the PC: it must open the PC's Wi-Fi address instead.
+if (IS_PHONE && !FROM_SERVER) {
+  document.getElementById("phoneSteps").hidden = false;
+  document.getElementById("pcSteps").hidden = true;
+}
 
 const $ = id => document.getElementById(id);
 const urlIn = $("url"), badge = $("badge"), msg = $("msg"), goBtn = $("go"), qSel = $("quality");
@@ -215,13 +244,24 @@ async function checkServer() {
     const h = await api("/api/health");
     online = true;
     $("status").classList.remove("show");
+    $("folder").hidden = !h.local;
+    const showQr = h.local && h.lan_url && !IS_PHONE;
+    $("phone").classList.toggle("show", !!showQr);
+    if (showQr && $("lanUrl").textContent !== h.lan_url) {
+      $("lanUrl").textContent = h.lan_url;
+      $("qr").src = API + "/api/qr.svg";
+    }
     if (!h.ffmpeg) setMsg("ไม่พบ ffmpeg — แปลง MP3 จะไม่ได้ ให้รัน start.bat ใหม่", "err");
   } catch {
     online = false;
     $("status").classList.add("show");
+    $("phone").classList.remove("show");
   }
   updateGo();
-  if (online && !was && urlIn.value.trim()) lookup();
+  if (online && !was) {
+    restoreJobs();
+    if (urlIn.value.trim()) lookup();
+  }
 }
 
 async function lookup() {
@@ -270,7 +310,20 @@ $("folder").onclick = () => api("/api/open-folder").catch(() => {});
 $("clear").onclick = () => {
   for (let i = jobs.length - 1; i >= 0; i--) if (["done", "error"].includes(jobs[i].status)) jobs.splice(i, 1);
   render();
+  api("/api/clear", {}).catch(() => {});
 };
+
+// Bring back conversions the server already knows about (e.g. after the page reloads).
+async function restoreJobs() {
+  let list;
+  try { list = await api("/api/jobs"); } catch { return; }
+  for (const j of list.reverse()) {
+    if (jobs.some(x => x.id === j.id)) continue;
+    jobs.unshift(j);
+    if (!["done", "error"].includes(j.status)) poll(j);
+  }
+  render();
+}
 
 async function start() {
   const u = urlIn.value.trim();
@@ -283,7 +336,7 @@ async function start() {
   render();
   urlIn.value = ""; lookup();
   try {
-    const { id } = await api("/api/start", { url: u, format: job.format, quality: job.quality });
+    const { id } = await api("/api/start", { url: u, format: job.format, quality: job.quality, title: job.title });
     job.id = id;
     poll(job);
   } catch (e) {

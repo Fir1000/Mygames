@@ -1,0 +1,11 @@
+{
+  // Live Server reloads the page when files change. The converter writes downloads
+  // into converter/, which would reload converter.html mid-conversion.
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "converter/**"
+  ]
+}
