@@ -3,6 +3,12 @@ chcp 65001 >nul
 cd /d "%~dp0"
 title Mygames Converter
 
+rem Register mygames-converter:// so the "start" button on the web page can open this file.
+rem Current user only, no admin needed. Re-registered each run in case the folder moved.
+reg add "HKCU\Software\Classes\mygames-converter" /ve /d "URL:Mygames Converter" /f >nul
+reg add "HKCU\Software\Classes\mygames-converter" /v "URL Protocol" /d "" /f >nul
+reg add "HKCU\Software\Classes\mygames-converter\shell\open\command" /ve /d "\"%ComSpec%\" /c start \"Mygames Converter\" /min \"%~dp0start.bat\" --no-browser" /f >nul
+
 where python >nul 2>nul
 if errorlevel 1 (
   echo ไม่พบ Python - ติดตั้งจาก https://www.python.org/downloads/ แล้วติ๊ก "Add python.exe to PATH"
@@ -35,5 +41,7 @@ if errorlevel 1 (
   powershell -NoProfile -Command "Start-Process netsh -Verb RunAs -Wait -WindowStyle Hidden -ArgumentList 'advfirewall firewall add rule name=\"Mygames Converter\" dir=in action=allow protocol=TCP localport=8765 remoteip=localsubnet profile=any'" 2>nul
 )
 
-".venv\Scripts\python.exe" server.py
+".venv\Scripts\python.exe" server.py %*
+rem 3 = already running in another window: nothing to show.
+if errorlevel 3 exit /b 0
 pause

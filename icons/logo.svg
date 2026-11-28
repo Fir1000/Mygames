@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b2e3b"/>
+      <stop offset="1" stop-color="#101116"/>
+    </linearGradient>
+    <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="0" y1="104" x2="0" y2="408">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="fire" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ef4444"/>
+      <stop offset=".55" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- F -->
+  <path fill="url(#gold)" d="M146 104h200a18 18 0 0 1 18 18v34a18 18 0 0 1-18 18H204v52h66a18 18 0 0 1 18 18v28a18 18 0 0 1-18 18h-66v100a18 18 0 0 1-18 18h-40a18 18 0 0 1-18-18V122a18 18 0 0 1 18-18z"/>
+  <!-- flame -->
+  <path fill="url(#fire)" d="M362 238c26 34 50 58 50 98 0 40-28 68-62 68s-62-28-62-64c0-30 18-48 30-70 6 18 12 28 22 34 4-24 6-44 22-66z"/>
+  <path fill="#fde68a" d="M352 314c14 18 24 30 24 50 0 18-12 30-26 30s-26-12-26-28c0-14 8-24 14-34 3 8 6 12 10 14 1-12 2-20 4-32z"/>
+</svg>

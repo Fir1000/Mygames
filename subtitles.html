@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ดูคลิปซับสองภาษา — Mygames</title>
+<title>ดูคลิปซับสองภาษา — MyFiR</title>
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16171c">
+<meta name="apple-mobile-web-app-title" content="MyFiR">
 <style>
   :root {
     --bg: #16171c; --card: #23252d; --card2: #2b2e37; --line: #363945;
@@ -28,6 +33,9 @@
   .status h3 { margin: 0 0 8px; color: #fdba74; font-size: 16px; }
   .status ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.8; font-size: 14px; }
   .status code { background: #0006; padding: 1px 6px; border-radius: 4px; color: var(--text); }
+  .launch { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 6px 0 12px; }
+  .launch span { color: var(--muted); font-size: 14px; line-height: 1.5; flex: 1; min-width: 200px; }
+  .status .first { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 
   .row { display: flex; gap: 8px; }
   input[type=url] {
@@ -120,11 +128,13 @@
       <li>ให้มือถือกับคอมต่อ <b>Wi-Fi เดียวกัน</b></li>
       <li>ใช้กล้องมือถือสแกน QR code บนหน้านี้ในคอม (หรือพิมพ์ที่อยู่ <code>http://…:8765/subtitles.html</code> ที่แสดงอยู่)</li>
     </ol>
-    <ol id="pcSteps">
-      <li>เปิดโฟลเดอร์ <code>Mygames\converter</code></li>
-      <li>ดับเบิลคลิก <code>start.bat</code> (ตัวเดียวกับที่ใช้แปลงไฟล์)</li>
-      <li>หน้านี้จะเชื่อมต่อให้อัตโนมัติเมื่อพร้อม</li>
-    </ol>
+    <div id="pcSteps">
+      <div class="launch">
+        <button class="primary" id="startBtn">▶ เปิดตัวช่วย</button>
+        <span id="launchMsg">กดปุ่มนี้ แล้วรอสักครู่ หน้านี้จะเชื่อมต่อให้เอง</span>
+      </div>
+      <p class="first">กดแล้วไม่มีอะไรเกิดขึ้น? ครั้งแรกต้องเปิดเองก่อน 1 ครั้ง: เปิดโฟลเดอร์ <code>Mygames\converter</code> แล้วดับเบิลคลิก <code>start.bat</code> (ติดตั้งให้เอง รอ 1–2 นาที) ครั้งต่อไปกดปุ่มนี้ได้เลย</p>
+    </div>
   </div>
 
   <div class="panel">
@@ -405,6 +415,27 @@ $("full").onclick = () => {
   const st = $("stage");
   if (document.fullscreenElement) document.exitFullscreen();
   else (st.requestFullscreen || st.webkitRequestFullscreen).call(st);
+};
+
+// "Start" button: opens start.bat through the mygames-converter:// link that start.bat registers.
+const LAUNCH_HINT = $("launchMsg").textContent;
+let launchTimer = null;
+$("startBtn").onclick = () => {
+  location.href = "mygames-converter://start";
+  $("startBtn").disabled = true;
+  $("launchMsg").textContent = 'กำลังเปิด... ถ้าเบราว์เซอร์ถาม ให้กด "เปิด" (ติ๊ก "อนุญาตเสมอ" ไว้ ครั้งหน้าจะไม่ถามอีก)';
+  let n = 0;
+  clearInterval(launchTimer);
+  launchTimer = setInterval(async () => {
+    await checkServer();
+    if (online || ++n > 80) {
+      clearInterval(launchTimer);
+      $("startBtn").disabled = false;
+      $("launchMsg").textContent = LAUNCH_HINT;
+    } else if (n === 15) {
+      $("launchMsg").textContent = "ยังไม่ขึ้น? ถ้าเพิ่งใช้ครั้งแรก ให้ทำตามบรรทัดด้านล่างก่อน 1 ครั้ง";
+    }
+  }, 1500);
 };
 
 checkServer();

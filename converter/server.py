@@ -377,6 +377,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_file(BASE.parent / "converter.html", "text/html; charset=utf-8")
         if path == "/subtitles.html":
             return self._send_file(BASE.parent / "subtitles.html", "text/html; charset=utf-8")
+        # App icon + manifest, so "Add to Home Screen" on a phone gets the MyFiR icon.
+        if path == "/manifest.webmanifest":
+            return self._send_file(BASE.parent / "manifest.webmanifest", "application/manifest+json")
+        m = re.fullmatch(r"/icons/([\w-]+\.(png|svg))", path)
+        if m:
+            ctype = "image/svg+xml" if m.group(2) == "svg" else "image/png"
+            return self._send_file(BASE.parent / "icons" / m.group(1), ctype)
         if path == "/api/health":
             return self._json({"ok": True, "ffmpeg": bool(FFMPEG), "yt_dlp": yt_dlp.version.__version__,
                                "local": self._is_local(), "lan_url": LAN_URL})
@@ -490,8 +497,17 @@ class Handler(BaseHTTPRequestHandler):
             shutil.copyfileobj(f, self.wfile)
 
 
+class Server(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second copy bind the same port; we want it to fail instead.
+    allow_reuse_address = sys.platform != "win32"
+
+
 def main():
-    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    try:
+        server = Server((HOST, PORT), Handler)
+    except OSError:
+        print("Mygames converter is already running in another window.")
+        sys.exit(3)
     url = f"http://127.0.0.1:{PORT}"
     print(f"Mygames converter running at {url}")
     if LAN_URL:
