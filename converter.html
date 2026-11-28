@@ -175,7 +175,12 @@
 const FROM_SERVER = location.port === "8765";
 const API = FROM_SERVER ? "" : "http://127.0.0.1:8765";
 const IS_PHONE = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;
-if (FROM_SERVER) document.getElementById("back").style.display = "none";
+if (FROM_SERVER) {
+  // Opened from the PC's server (e.g. on a phone): the game hub isn't here, link the other tool instead.
+  const back = document.getElementById("back");
+  back.href = "subtitles.html";
+  back.textContent = "ไปหน้าดูคลิปซับสองภาษา →";
+}
 // A phone can't reach 127.0.0.1 on the PC: it must open the PC's Wi-Fi address instead.
 if (IS_PHONE && !FROM_SERVER) {
   document.getElementById("phoneSteps").hidden = false;

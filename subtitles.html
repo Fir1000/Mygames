@@ -95,6 +95,13 @@
   .line .t { color: var(--muted); font-size: 12px; padding-top: 3px; font-variant-numeric: tabular-nums; grid-row: span 2; }
   .line .a { font-weight: 600; }
   .line .b { color: var(--sub2); font-size: 14px; }
+  .phone { display: none; gap: 18px; align-items: center; }
+  .phone.show { display: flex; }
+  .phone img { background: #fff; border-radius: 10px; padding: 4px; flex-shrink: 0; }
+  .phone h3 { margin: 0 0 6px; font-size: 16px; }
+  .phone p { margin: 0 0 6px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .phone code { font-size: 15px; color: var(--accent); background: #0006; padding: 2px 8px; border-radius: 6px; user-select: all; word-break: break-all; }
+  .phone .hint { font-size: 12px; }
   .note { color: var(--muted); font-size: 13px; line-height: 1.7; margin-top: 32px; border-top: 1px solid var(--line); padding-top: 16px; }
   [hidden] { display: none !important; }
   @media (max-width: 560px) { .langs .primary { margin-left: 0; width: 100%; } }
@@ -108,7 +115,12 @@
 
   <div class="panel status" id="status">
     <h3>ยังไม่ได้เปิดตัวช่วย</h3>
-    <ol>
+    <ol id="phoneSteps" hidden>
+      <li>บนคอมพิวเตอร์ ดับเบิลคลิก <code>Mygames\converter\start.bat</code></li>
+      <li>ให้มือถือกับคอมต่อ <b>Wi-Fi เดียวกัน</b></li>
+      <li>ใช้กล้องมือถือสแกน QR code บนหน้านี้ในคอม (หรือพิมพ์ที่อยู่ <code>http://…:8765/subtitles.html</code> ที่แสดงอยู่)</li>
+    </ol>
+    <ol id="pcSteps">
       <li>เปิดโฟลเดอร์ <code>Mygames\converter</code></li>
       <li>ดับเบิลคลิก <code>start.bat</code> (ตัวเดียวกับที่ใช้แปลงไฟล์)</li>
       <li>หน้านี้จะเชื่อมต่อให้อัตโนมัติเมื่อพร้อม</li>
@@ -129,6 +141,16 @@
       <button class="primary" id="go" disabled>เปิดดู</button>
     </div>
     <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="panel phone" id="phone">
+    <img id="qr" alt="QR code สำหรับเปิดบนมือถือ" width="132" height="132">
+    <div>
+      <h3>ดูบนมือถือ</h3>
+      <p>ต่อ Wi-Fi เดียวกับคอมเครื่องนี้ แล้วสแกน QR code ด้วยกล้องมือถือ หรือพิมพ์</p>
+      <p><code id="lanUrl"></code></p>
+      <p class="hint">ต้องเปิด start.bat บนคอมค้างไว้ · ถ้ามือถือเปิดไม่ขึ้น ให้ปิดแล้วเปิด start.bat ใหม่ แล้วกด Yes เมื่อ Windows ขอสิทธิ์ · มือถือต้องไม่ได้ใช้เน็ตมือถือ (4G/5G) อยู่</p>
+    </div>
   </div>
 
   <div id="viewer" hidden>
@@ -162,7 +184,20 @@
 <script>
 const FROM_SERVER = location.port === "8765";
 const API = FROM_SERVER ? "" : "http://127.0.0.1:8765";
-if (FROM_SERVER) document.getElementById("back").style.display = "none";
+const IS_PHONE = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;
+if (FROM_SERVER) {
+  // Opened from the PC's server (e.g. on a phone): the game hub isn't here, link the converter instead.
+  const back = document.getElementById("back");
+  back.href = "/";
+  back.textContent = "← แปลงไฟล์ MP3 / MP4";
+}
+// A phone can't reach 127.0.0.1 on the PC: it must open the PC's Wi-Fi address instead.
+if (IS_PHONE && !FROM_SERVER) {
+  document.getElementById("phoneSteps").hidden = false;
+  document.getElementById("pcSteps").hidden = true;
+}
+// iPhone Safari can't put a page section in fullscreen; turn the phone sideways instead.
+if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)) document.getElementById("full").hidden = true;
 
 const LANGS = { en: "อังกฤษ", th: "ไทย", ko: "เกาหลี", zh: "จีน", ja: "ญี่ปุ่น" };
 const PRESETS = [["en", "th"], ["ko", "en"], ["ko", "th"], ["zh", "en"], ["zh", "th"]];
@@ -210,8 +245,15 @@ async function api(path, body) {
 }
 
 async function checkServer() {
-  try { await api("/api/health"); online = true; } catch { online = false; }
+  let h = null;
+  try { h = await api("/api/health"); online = true; } catch { online = false; }
   $("status").classList.toggle("show", !online);
+  const showQr = online && h.local && h.lan_url && !IS_PHONE;
+  $("phone").classList.toggle("show", !!showQr);
+  if (showQr && !$("lanUrl").textContent) {
+    $("lanUrl").textContent = h.lan_url + "/subtitles.html";
+    $("qr").src = API + "/api/qr.svg?p=subtitles";
+  }
   updateGo();
 }
 

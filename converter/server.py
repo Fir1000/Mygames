@@ -385,7 +385,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"error": "no network"}, 404)
             import segno
             buf = io.BytesIO()
-            segno.make(LAN_URL, error="m").save(buf, kind="svg", scale=6, border=2,
+            page = "/subtitles.html" if "p=subtitles" in (urlparse(self.path).query or "") else ""
+            segno.make(LAN_URL + page, error="m").save(buf, kind="svg", scale=6, border=2,
                                                  dark="#111", light="#fff", xmldecl=False)
             body = buf.getvalue()
             self.send_response(200)
