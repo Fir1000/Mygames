@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>แปลงไฟล์ TikTok / YouTube — MyFiR</title>
-<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-48.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#16171c">
@@ -120,9 +120,9 @@
   <div class="panel status" id="status">
     <h3>ยังไม่ได้เปิดตัวแปลงไฟล์</h3>
     <ol id="phoneSteps" hidden>
-      <li>บนคอมพิวเตอร์ ดับเบิลคลิก <code>Mygames\converter\start.bat</code></li>
+      <li>บนคอม เปิดหน้านี้แล้วกด <b>▶ เปิดตัวช่วย</b> (หรือดับเบิลคลิก <code>start.bat</code>) แล้วเปิดค้างไว้</li>
       <li>ให้มือถือกับคอมต่อ <b>Wi-Fi เดียวกัน</b></li>
-      <li>ใช้กล้องมือถือสแกน QR code ที่ขึ้นบนหน้าจอคอม (หรือพิมพ์ที่อยู่ <code>http://…:8765</code> ที่แสดงอยู่)</li>
+      <li>กดปุ่ม <b>📷 สแกน QR</b> ด้านล่าง แล้วเล็งไปที่ QR code บนจอคอม</li>
     </ol>
     <div id="pcSteps">
       <div class="launch">
@@ -422,5 +422,6 @@ fillQuality();
 checkServer();
 setInterval(checkServer, 4000);
 </script>
+<script src="phone-connect.js"></script>
 </body>
 </html>

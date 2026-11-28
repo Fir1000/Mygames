@@ -378,6 +378,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/subtitles.html":
             return self._send_file(BASE.parent / "subtitles.html", "text/html; charset=utf-8")
         # App icon + manifest, so "Add to Home Screen" on a phone gets the MyFiR icon.
+        if path == "/phone-connect.js":
+            return self._send_file(BASE.parent / "phone-connect.js", "text/javascript; charset=utf-8")
         if path == "/manifest.webmanifest":
             return self._send_file(BASE.parent / "manifest.webmanifest", "application/manifest+json")
         m = re.fullmatch(r"/icons/([\w-]+\.(png|svg))", path)
